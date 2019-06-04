@@ -43,6 +43,8 @@ public class CabinetManager : MonoBehaviour
     public bool collisionRear = false;
     [HideInInspector]
     public Vector3 snapPos;
+    [HideInInspector]
+    public GameObject collisionObject;
 
     // Start is called before the first frame update
     void Start()
@@ -59,7 +61,8 @@ public class CabinetManager : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
-        Debug.Log("On collision: " + collision.gameObject.GetComponent<Collider>().bounds.center);
+        //Debug.Log("On collision: " + collision.gameObject.GetComponent<Collider>().bounds.center);
+        collisionObject = collision.gameObject;
         float dx = collision.transform.position.x - gameObject.transform.position.x;
         float dz = collision.transform.position.z - gameObject.transform.position.z;
         if (!collisionLeft && !collisionRight)
@@ -105,10 +108,11 @@ public class CabinetManager : MonoBehaviour
     private void OnCollisionExit(Collision collision)
     {
         //Debug.Log("Collision exit");
-        //cabinetState = CabinetState.Instantiated;
-        //collisionLeft = false;
-        //collisionRight = false;
-        //collisionRear = false;
+        cabinetState = CabinetState.Instantiated;
+        collisionLeft = false;
+        collisionRight = false;
+        collisionRear = false;
+        collisionObject = null;
     }
 
     public void CabinetStateChangedHandler(CabinetState newState)
