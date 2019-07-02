@@ -2698,6 +2698,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13b78fa49c7877045aa18f6e7d87d24e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  marker: {fileID: 0}
   cabinetPrefab: {fileID: 8627622618988473599, guid: f4af8e16020ec274681a2f64c3f7d736,
     type: 3}
   thickness: 16
@@ -4045,6 +4046,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 13b78fa49c7877045aa18f6e7d87d24e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  marker: {fileID: 5260839581119319674, guid: c85c822c41f4d0948919de5258a5dc7d, type: 3}
   cabinetPrefab: {fileID: 8627622618988473599, guid: f4af8e16020ec274681a2f64c3f7d736,
     type: 3}
   thickness: 16

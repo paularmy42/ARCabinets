@@ -8,6 +8,7 @@ using UnityEngine.EventSystems;
 [RequireComponent(typeof(ARSessionOrigin))]
 public class PlacementManager : MonoBehaviour
 {
+    public GameObject marker;
     public GameObject cabinetPrefab;
     ARSessionOrigin m_SessionOrigin;
 
@@ -57,7 +58,18 @@ public class PlacementManager : MonoBehaviour
     private Vector3 currentPosition;
 
     static List<ARRaycastHit> s_Hits = new List<ARRaycastHit>();
+    static List<ARRaycastHit> touch2_Hits = new List<ARRaycastHit>();
 
+    [HideInInspector]
+    public bool collisionLeft = false;
+    [HideInInspector]
+    public bool collisionRight = false;
+    [HideInInspector]
+    public bool collisionRear = false;
+    [HideInInspector]
+    public Vector3 snapPos;
+    [HideInInspector]
+    public GameObject collisionObject;
 
     void Awake()
     {
@@ -84,7 +96,7 @@ public class PlacementManager : MonoBehaviour
                 return;
             }
         }
-        else
+        else if (Input.touchCount == 1)
         {
             var touch = Input.GetTouch(0);
 
@@ -98,33 +110,33 @@ public class PlacementManager : MonoBehaviour
                 {
                     currentPosition = objPlacement.transform.position;
                     Vector3 newPos = new Vector3();
-                    if (state == CabinetState.Snapped && manager.collisionRight)
+                    if (state == CabinetState.Snapped && collisionRight)
                     {
                         if (currentPosition.x - s_Hits[0].pose.position.x > 0.2f)
                         {
-                            manager.collisionRight = false;
+                            collisionRight = false;
                         }
-                        newPos.x = manager.snapPos.x;
+                        newPos.x = snapPos.x;
                     }
-                    else if (state == CabinetState.Snapped && manager.collisionLeft)
+                    else if (state == CabinetState.Snapped && collisionLeft)
                     {
                         if (s_Hits[0].pose.position.x - currentPosition.x > 0.2f)
                         {
-                            manager.collisionLeft = false;
+                            collisionLeft = false;
                         }
-                        newPos.x = manager.snapPos.x;
+                        newPos.x = snapPos.x;
                     }
                     else
                     {
                         newPos.x = s_Hits[0].pose.position.x;
                     }
-                    if (state == CabinetState.Snapped && manager.collisionRear)
+                    if (state == CabinetState.Snapped && collisionRear)
                     {
                         if (currentPosition.z - s_Hits[0].pose.position.z > 0.2f)
                         {
-                            manager.collisionRear = false;
+                            collisionRear = false;
                         }
-                        newPos.z = manager.snapPos.z;
+                        newPos.z = snapPos.z;
                     }
                     else
                     {
@@ -134,6 +146,20 @@ public class PlacementManager : MonoBehaviour
                     objPlacement.transform.position = newPos;
                 }
             }
+        }
+        else if (Input.touchCount == 2)
+        {
+            //Dual-touch to rotate cabinet
+            var touch2 = Input.GetTouch(1);
+
+            if (m_SessionOrigin.Raycast(touch2.position, touch2_Hits, TrackableType.PlaneWithinPolygon))
+            {
+                Vector3 direction = objPlacement.transform.position - touch2_Hits[0].pose.position;
+                direction.y = 0;
+                Vector3 turn = Vector3.Cross(Vector3.up, direction);
+                objPlacement.transform.rotation = Quaternion.LookRotation(turn);
+            }
+
         }
     }
 
@@ -146,16 +172,86 @@ public class PlacementManager : MonoBehaviour
         Debug.Log("New cabinet instantiated");
     }
 
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        //Debug.Log("On collision: " + collision.gameObject.GetComponent<Collider>().bounds.center);
+        collisionObject = collision.gameObject;
+        float snapDistSide = collision.gameObject.GetComponent<Collider>().bounds.size.x / 2 + gameObject.GetComponent<Collider>().bounds.size.x / 2;
+        float snapDistRear = collision.gameObject.GetComponent<Collider>().bounds.size.z / 2 + gameObject.GetComponent<Collider>().bounds.size.z / 2;
+        float posOffsetSide = collision.transform.position.x - gameObject.transform.position.x;
+        float posOffsetRear = collision.transform.position.z - gameObject.transform.position.z;
+        if (!collisionLeft && !collisionRight)
+        {
+            objPlacement.transform.rotation = collisionObject.transform.rotation;
+            manager.cabinetState = CabinetState.Snapped;
+            if (Mathf.Abs(posOffsetSide) >= (snapDistSide) - 0.05f)
+            {
+                if (posOffsetSide > 0)
+                {
+                    //Debug.Log("Right");
+                    collisionRight = true;
+                    snapPos.x = collision.transform.position.x - (snapDistSide);
+                    snapPos.y = gameObject.transform.position.y;
+                    snapPos.z = gameObject.transform.position.z;
+                    gameObject.transform.position = snapPos;
+                }
+                else
+                {
+                    //Debug.Log("Left");
+                    collisionLeft = true;
+                    snapPos.x = collision.transform.position.x + snapDistSide;
+                    snapPos.y = gameObject.transform.position.y;
+                    snapPos.z = gameObject.transform.position.z;
+                    gameObject.transform.position = snapPos;
+                }
+            }
+        }
+        if (!collisionRear)
+        {
+            manager.cabinetState = CabinetState.Snapped;
+            if (Mathf.Abs(posOffsetRear) >= (snapDistRear) - 0.05f)
+            {
+                //Debug.Log("Rear");
+                collisionRear = true;
+                snapPos.x = gameObject.transform.position.x;
+                snapPos.y = gameObject.transform.position.y;
+                snapPos.z = collision.transform.position.z - (snapDistRear);
+                gameObject.transform.position = snapPos;
+            }
+        }
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        //Debug.Log("Collision exit");
+        manager.cabinetState = CabinetState.Instantiated;
+        collisionLeft = false;
+        collisionRight = false;
+        collisionRear = false;
+        collisionObject = null;
+    }
+
+
+
     public void CabinetStateChangedHandler(CabinetState newState)
     {
         state = newState;
         if (newState == CabinetState.Snapped)
         {
             Debug.Log(string.Format("Placement Manager - Cabinet Snapped: {0}", objPlacement.gameObject.transform.position.ToString()));
-            objPlacement.transform.rotation = manager.collisionObject.transform.rotation;
         }
         if (newState == CabinetState.Placed)
         {
+            Debug.Log(string.Format("XZ angle is {0}", objPlacement.transform.eulerAngles.y));
+            Debug.Log(string.Format("X,Z point of object origin is {0},{1}", objPlacement.transform.position.x, objPlacement.transform.position.z));
+            float dZ = Mathf.Sin(objPlacement.transform.eulerAngles.y * Mathf.Deg2Rad) * 0.3f;
+            float dX = Mathf.Cos(objPlacement.transform.eulerAngles.y * Mathf.Deg2Rad) * 0.3f;
+            float newX = objPlacement.transform.position.x + dX;
+            float newZ = objPlacement.transform.position.z - dZ;
+            Debug.Log(string.Format("X,Z point of object opposite end is {0},{1}", newX, newZ));
+
+            Instantiate(marker, new Vector3(newX, 0, newZ), Quaternion.identity);
             objPlacement = null;
         }
     }

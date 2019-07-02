@@ -35,16 +35,6 @@ public class CabinetManager : MonoBehaviour
             }
         }
     }
-    [HideInInspector]
-    public bool collisionLeft = false;
-    [HideInInspector]
-    public bool collisionRight = false;
-    [HideInInspector]
-    public bool collisionRear = false;
-    [HideInInspector]
-    public Vector3 snapPos;
-    [HideInInspector]
-    public GameObject collisionObject;
 
     // Start is called before the first frame update
     void Start()
@@ -59,61 +49,6 @@ public class CabinetManager : MonoBehaviour
         
     }
 
-    private void OnCollisionEnter(Collision collision)
-    {
-        //Debug.Log("On collision: " + collision.gameObject.GetComponent<Collider>().bounds.center);
-        collisionObject = collision.gameObject;
-        float dx = collision.transform.position.x - gameObject.transform.position.x;
-        float dz = collision.transform.position.z - gameObject.transform.position.z;
-        if (!collisionLeft && !collisionRight)
-        {
-            cabinetState = CabinetState.Snapped;
-            if(Mathf.Abs(dx) >= (collision.gameObject.GetComponent<Collider>().bounds.size.x / 2 + gameObject.GetComponent<Collider>().bounds.size.x / 2) - 0.05f)
-            {
-                if(dx>0)
-                {
-                    //Debug.Log("Right");
-                    collisionRight = true;
-                    snapPos.x = collision.transform.position.x - (collision.gameObject.GetComponent<Collider>().bounds.size.x / 2 + gameObject.GetComponent<Collider>().bounds.size.x / 2);
-                    snapPos.y = gameObject.transform.position.y;
-                    snapPos.z = gameObject.transform.position.z;
-                    gameObject.transform.position = snapPos;
-                }
-                else
-                {
-                    //Debug.Log("Left");
-                    collisionLeft = true;
-                    snapPos.x = collision.transform.position.x + collision.gameObject.GetComponent<Collider>().bounds.size.x / 2 + gameObject.GetComponent<Collider>().bounds.size.x / 2;
-                    snapPos.y = gameObject.transform.position.y;
-                    snapPos.z = gameObject.transform.position.z;
-                    gameObject.transform.position = snapPos;
-                }
-            }
-        }
-        if (!collisionRear)
-        {
-            cabinetState = CabinetState.Snapped;
-            if (Mathf.Abs(dz) >= (collision.gameObject.GetComponent<Collider>().bounds.size.z / 2 + gameObject.GetComponent<Collider>().bounds.size.z / 2) - 0.05f)
-            {
-                //Debug.Log("Rear");
-                collisionRear = true;
-                snapPos.x = gameObject.transform.position.x;
-                snapPos.y = gameObject.transform.position.y;
-                snapPos.z = collision.transform.position.z - (collision.gameObject.GetComponent<Collider>().bounds.size.z / 2 + gameObject.GetComponent<Collider>().bounds.size.z / 2);
-                gameObject.transform.position = snapPos;
-            }
-        }
-    }
-
-    private void OnCollisionExit(Collision collision)
-    {
-        //Debug.Log("Collision exit");
-        cabinetState = CabinetState.Instantiated;
-        collisionLeft = false;
-        collisionRight = false;
-        collisionRear = false;
-        collisionObject = null;
-    }
 
     public void CabinetStateChangedHandler(CabinetState newState)
     {
